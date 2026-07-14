@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "ToolTrack",
+    "slug": "tooltrack-mobile",
+    "description": "Track tools, scan QR codes, and manage employee checkouts.",
+    "scheme": "tooltrack",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/tooltrack-icon-1024.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tooltrack.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "ToolTrack uses the camera to scan tool QR codes."
+      }
+    },
+    "android": {
+      "package": "com.tooltrack.mobile",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#17384F",
+        "foregroundImage": "./assets/tooltrack-icon-1024.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow ToolTrack to scan tool QR codes.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow ToolTrack to select photos for tool records.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#17384F",
+          "image": "./assets/tooltrack-icon-1024.png",
+          "imageWidth": 190,
+          "resizeMode": "contain"
+        }
+      ]
+    ]
+  }
+}

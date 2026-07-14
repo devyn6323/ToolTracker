@@ -1,0 +1,11 @@
+.m2/
+.env
+.env.*
+!.env.example
+!**/.env.example
+tooltrack-backend/target/
+tooltrack-backend/data/
+tooltrack-backend/uploads/
+.idea/
+.vscode/
+*.iml

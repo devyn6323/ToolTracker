@@ -1,0 +1,20 @@
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ApiError, request } from '../api/client';
+import { useAuth } from '../auth/AuthContext';
+import { Button, Card, ErrorBanner, Input, Screen, SelectChips, SectionTitle, pretty } from '../components/ui';
+import { colors } from '../theme';
+import { Role, UserSummary } from '../types';
+const roles: Role[] = ['EMPLOYEE', 'MANAGER'];
+export function EmployeesScreen() {
+  const { session } = useAuth(); const [employees, setEmployees] = useState<UserSummary[]>([]); const [showForm, setShowForm] = useState(false); const [form, setForm] = useState({ name: '', email: '', password: '', role: 'EMPLOYEE' as Role }); const [loading, setLoading] = useState(false); const [error, setError] = useState('');
+  const load = useCallback(() => request<UserSummary[]>('/api/employees', {}, session?.token).then(setEmployees).catch(e => setError(e.message)), [session?.token]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+  async function add() { if (!form.name || !form.email || !form.password) return setError('Complete every employee field.'); setLoading(true); setError(''); try { await request<UserSummary>('/api/employees', { method: 'POST', body: JSON.stringify(form) }, session?.token); setForm({ name: '', email: '', password: '', role: 'EMPLOYEE' }); setShowForm(false); load(); } catch (e) { setError(e instanceof ApiError ? e.message : 'Could not add employee.'); } finally { setLoading(false); } }
+  return <Screen><View style={styles.header}><View><Text style={styles.count}>{employees.length}</Text><Text style={styles.countLabel}>active team members</Text></View><Pressable onPress={() => setShowForm(value => !value)} style={styles.add}><Text style={styles.addText}>{showForm ? '×' : '＋'}</Text></Pressable></View><ErrorBanner message={error} />
+    {showForm && <Card style={{ gap: 13 }}><SectionTitle title="New team member" /><Input label="Name" value={form.name} onChangeText={name => setForm(v => ({ ...v, name }))} /><Input label="Email" value={form.email} onChangeText={email => setForm(v => ({ ...v, email }))} autoCapitalize="none" keyboardType="email-address" /><Input label="Temporary password" value={form.password} onChangeText={password => setForm(v => ({ ...v, password }))} secureTextEntry placeholder="At least 8 characters" /><SelectChips label="Role" value={form.role} options={roles} onChange={role => setForm(v => ({ ...v, role }))} /><Button title="Add employee" onPress={add} loading={loading} /></Card>}
+    <SectionTitle title="Crew" />{employees.map(employee => <Card key={employee.id} style={styles.employee}><View style={styles.avatar}><Text style={styles.avatarText}>{employee.name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()}</Text></View><View style={{ flex: 1 }}><Text style={styles.name}>{employee.name}</Text><Text style={styles.email}>{employee.email}</Text></View><View style={styles.role}><Text style={styles.roleText}>{pretty(employee.role)}</Text></View></Card>)}
+  </Screen>;
+}
+const styles = StyleSheet.create({ header: { borderRadius: 20, padding: 20, backgroundColor: colors.navy, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, count: { color: '#fff', fontWeight: '900', fontSize: 34 }, countLabel: { color: '#B8C4CA' }, add: { width: 48, height: 48, borderRadius: 15, backgroundColor: colors.orange, alignItems: 'center', justifyContent: 'center' }, addText: { color: '#fff', fontWeight: '800', fontSize: 27 }, employee: { flexDirection: 'row', alignItems: 'center', gap: 12 }, avatar: { width: 46, height: 46, borderRadius: 15, backgroundColor: colors.paleBlue, alignItems: 'center', justifyContent: 'center' }, avatarText: { color: colors.blue, fontWeight: '900' }, name: { color: colors.ink, fontWeight: '800' }, email: { color: colors.muted, fontSize: 12, marginTop: 2 }, role: { borderRadius: 100, backgroundColor: colors.paleOrange, paddingHorizontal: 9, paddingVertical: 6 }, roleText: { color: colors.orangeDark, fontWeight: '800', fontSize: 10 } });

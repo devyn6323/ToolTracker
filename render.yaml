@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: tooltrack-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./tooltrack-backend/Dockerfile
+    dockerContext: ./tooltrack-backend
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tooltrack-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SUPPORT_EMAIL
+        sync: false
+      - key: UPLOAD_DIR
+        value: /data/uploads
+
+databases:
+  - name: tooltrack-db
+    plan: free
+    databaseName: tooltrack
+    user: tooltrack
