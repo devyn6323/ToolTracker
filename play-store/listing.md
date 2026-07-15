@@ -37,8 +37,8 @@ Inventory management, asset tracking, business, productivity
 
 ## Support and policy URLs
 
-- Privacy policy: `https://YOUR_API_DOMAIN/privacy`
-- Account deletion: `https://YOUR_API_DOMAIN/delete-account`
-- Support email: `YOUR_MONITORED_SUPPORT_EMAIL`
+- Privacy policy: `https://tooltrack-api-ald3.onrender.com/privacy`
+- Account deletion: `https://tooltrack-api-ald3.onrender.com/delete-account`
+- Support email: `devyn.mi1994@gmail.com`
 
-Replace every uppercase placeholder before submission.
+The production API and support details above must match the values configured in EAS and Render.

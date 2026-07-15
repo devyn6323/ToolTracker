@@ -22,7 +22,10 @@
         "backgroundColor": "#17384F",
         "foregroundImage": "./assets/tooltrack-icon-1024.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
     "runtimeVersion": {
       "policy": "appVersion"
@@ -54,7 +57,14 @@
           "imageWidth": 190,
           "resizeMode": "contain"
         }
-      ]
-    ]
+      ],
+      "expo-status-bar"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b3806375-a7dc-4867-99a1-4802fc2c6391"
+      }
+    },
+    "owner": "devyn94"
   }
 }
