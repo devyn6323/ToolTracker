@@ -1,7 +1,7 @@
 CREATE TABLE companies (
     id UUID PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 CREATE TABLE app_users (
@@ -31,7 +31,7 @@ CREATE TABLE tools (
     qr_code_value VARCHAR(255) NOT NULL,
     photo_url VARCHAR(255),
     notes VARCHAR(2000),
-    created_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     version BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT uk_tool_company_asset UNIQUE (company_id, asset_number),
     CONSTRAINT uk_tool_qr UNIQUE (qr_code_value)
@@ -46,9 +46,9 @@ CREATE TABLE tool_transactions (
     location VARCHAR(255),
     condition_at_checkout VARCHAR(255),
     condition_at_return VARCHAR(255),
-    checked_out_at TIMESTAMPTZ,
-    expected_return_at TIMESTAMPTZ,
-    returned_at TIMESTAMPTZ,
+    checked_out_at TIMESTAMP WITH TIME ZONE,
+    expected_return_at TIMESTAMP WITH TIME ZONE,
+    returned_at TIMESTAMP WITH TIME ZONE,
     notes VARCHAR(2000)
 );
 
