@@ -4,7 +4,7 @@
     "slug": "tooltrack-mobile",
     "description": "Track tools, scan QR codes, and manage employee checkouts.",
     "scheme": "tooltrack",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/tooltrack-icon-1024.png",
     "userInterfaceStyle": "light",
@@ -12,7 +12,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.tooltrack.mobile",
       "infoPlist": {
-        "NSCameraUsageDescription": "ToolTrack uses the camera to scan tool QR codes."
+        "NSCameraUsageDescription": "ToolTrack uses the camera to scan tool QR codes and photograph tools."
       }
     },
     "android": {
@@ -38,7 +38,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow ToolTrack to scan tool QR codes.",
+          "cameraPermission": "Allow ToolTrack to scan QR codes and photograph tools.",
           "recordAudioAndroid": false
         }
       ],
@@ -58,7 +58,9 @@
           "resizeMode": "contain"
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      "@react-native-community/datetimepicker",
+      "expo-sharing"
     ],
     "extra": {
       "eas": {

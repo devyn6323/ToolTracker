@@ -11,7 +11,7 @@ Spring Boot API for ToolTrack's first usable inventory and checkout workflow.
 - Employee and manager account creation
 - Tool QR values and lookup after a scan
 - Local-development tool photo uploads
-- Self-checkout, return, current holder, due date, and checkout history
+- Single- and multi-tool checkout, return, current holder, due date, and checkout history
 - Holder-to-holder tool transfer
 - Dynamic overdue status and damaged/lost return handling
 - H2 integration tests using PostgreSQL compatibility mode
@@ -99,6 +99,7 @@ All routes except registration and login require `Authorization: Bearer <token>`
 | POST | `/api/tools` | Owner, admin, manager |
 | PUT | `/api/tools/{id}` | Owner, admin, manager |
 | POST | `/api/tools/{id}/checkout` | Any active user; checks out to self |
+| POST | `/api/tools/checkout/batch` | Any active user; checks selected tools out to self with shared job details |
 | POST | `/api/tools/{id}/return` | Current holder or management |
 | POST | `/api/tools/{id}/transfer` | Current holder or management |
 | GET | `/api/tools/{id}/history` | Any active user |
@@ -118,7 +119,7 @@ Register:
   "companyName": "Demo Construction",
   "name": "Alex Owner",
   "email": "owner@example.com",
-  "password": "password123"
+  "password": "ExamplePass1!"
 }
 ```
 

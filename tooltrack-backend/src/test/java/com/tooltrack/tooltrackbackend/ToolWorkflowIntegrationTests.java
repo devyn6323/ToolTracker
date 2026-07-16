@@ -24,7 +24,7 @@ class ToolWorkflowIntegrationTests {
     @Test
     void ownerCanAddCheckoutReturnAndReviewDrillHistory() throws Exception {
         String registerBody = """
-                {"companyName":"Demo Construction","name":"Alex Owner","email":"owner@demo.test","password":"password123"}
+                {"companyName":"Demo Construction","name":"Alex Owner","email":"owner@demo.test","password":"TestPass1!"}
                 """;
         String registerResponse = mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON).content(registerBody))
@@ -73,7 +73,7 @@ class ToolWorkflowIntegrationTests {
         String employeeResponse = mockMvc.perform(post("/api/employees")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Jamie Tech\",\"email\":\"jamie@demo.test\",\"password\":\"password123\",\"role\":\"EMPLOYEE\"}"))
+                        .content("{\"name\":\"Jamie Tech\",\"email\":\"jamie@demo.test\",\"password\":\"TestPass1!\",\"role\":\"EMPLOYEE\"}"))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         String employeeId = value(employeeResponse, "id");
@@ -117,11 +117,96 @@ class ToolWorkflowIntegrationTests {
     }
 
     @Test
+    void ownerCanCheckoutMultipleToolsWithSharedJobDetails() throws Exception {
+        String registerResponse = mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"companyName\":\"Batch Company\",\"name\":\"Batch Owner\",\"email\":\"batch-owner@demo.test\",\"password\":\"TestPass1!\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String token = value(registerResponse, "token");
+
+        String first = mockMvc.perform(post("/api/tools")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"assetNumber\":\"BATCH-001\",\"name\":\"First Tool\",\"condition\":\"GOOD\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String second = mockMvc.perform(post("/api/tools")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"assetNumber\":\"BATCH-002\",\"name\":\"Second Tool\",\"condition\":\"FAIR\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+
+        String body = "{\"toolIds\":[\"" + value(first, "id") + "\",\"" + value(second, "id")
+                + "\"],\"jobName\":\"Shared Job\",\"location\":\"North Site\",\"expectedReturnAt\":\"2099-01-01T00:00:00Z\"}";
+        mockMvc.perform(post("/api/tools/checkout/batch")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].jobName").value("Shared Job"))
+                .andExpect(jsonPath("$[1].location").value("North Site"));
+
+        mockMvc.perform(get("/api/tools/my-tools").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void batchCheckoutDoesNotPartiallyCheckoutWhenOneToolIsUnavailable() throws Exception {
+        String registerResponse = mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"companyName\":\"Atomic Batch Company\",\"name\":\"Batch Owner\",\"email\":\"atomic-batch@demo.test\",\"password\":\"TestPass1!\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String token = value(registerResponse, "token");
+
+        String available = mockMvc.perform(post("/api/tools")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"assetNumber\":\"ATOMIC-001\",\"name\":\"Available Tool\",\"condition\":\"GOOD\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String unavailable = mockMvc.perform(post("/api/tools")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"assetNumber\":\"ATOMIC-002\",\"name\":\"Checked Out Tool\",\"condition\":\"GOOD\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String availableId = value(available, "id");
+        String unavailableId = value(unavailable, "id");
+
+        mockMvc.perform(post("/api/tools/{id}/checkout", unavailableId)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"jobName\":\"Existing Job\",\"expectedReturnAt\":\"2099-01-01T00:00:00Z\"}"))
+                .andExpect(status().isOk());
+
+        String batchBody = "{\"toolIds\":[\"" + availableId + "\",\"" + unavailableId
+                + "\"],\"jobName\":\"New Job\",\"expectedReturnAt\":\"2099-01-02T00:00:00Z\"}";
+        mockMvc.perform(post("/api/tools/checkout/batch")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(batchBody))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(get("/api/tools/{id}", availableId).header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("AVAILABLE"))
+                .andExpect(jsonPath("$.checkedOutTo").doesNotExist());
+    }
+
+    @Test
+    void registrationRequiresStrongPassword() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"companyName\":\"Weak Password Co\",\"name\":\"Owner\",\"email\":\"weak@demo.test\",\"password\":\"password123\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.password").value(org.hamcrest.Matchers.containsString("uppercase")));
+    }
+
+    @Test
     void ownerCanPermanentlyDeleteCompanyAccount() throws Exception {
         String email = "delete-owner@demo.test";
         String registerResponse = mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"companyName\":\"Delete Me\",\"name\":\"Owner\",\"email\":\"" + email + "\",\"password\":\"password123\"}"))
+                        .content("{\"companyName\":\"Delete Me\",\"name\":\"Owner\",\"email\":\"" + email + "\",\"password\":\"TestPass1!\"}"))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         String token = value(registerResponse, "token");
@@ -129,12 +214,12 @@ class ToolWorkflowIntegrationTests {
         mockMvc.perform(delete("/api/auth/account")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"password\":\"password123\"}"))
+                        .content("{\"password\":\"TestPass1!\"}"))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"" + email + "\",\"password\":\"password123\"}"))
+                        .content("{\"email\":\"" + email + "\",\"password\":\"TestPass1!\"}"))
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/tools").header("Authorization", "Bearer " + token))
                 .andExpect(status().isUnauthorized());
@@ -145,7 +230,7 @@ class ToolWorkflowIntegrationTests {
         String email = "lockout-owner@demo.test";
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"companyName\":\"Lockout Test\",\"name\":\"Owner\",\"email\":\"" + email + "\",\"password\":\"password123\"}"))
+                        .content("{\"companyName\":\"Lockout Test\",\"name\":\"Owner\",\"email\":\"" + email + "\",\"password\":\"TestPass1!\"}"))
                 .andExpect(status().isCreated());
 
         for (int attempt = 0; attempt < 5; attempt++) {
@@ -157,7 +242,7 @@ class ToolWorkflowIntegrationTests {
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"" + email + "\",\"password\":\"password123\"}"))
+                        .content("{\"email\":\"" + email + "\",\"password\":\"TestPass1!\"}"))
                 .andExpect(status().isTooManyRequests());
     }
 

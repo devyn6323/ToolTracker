@@ -75,6 +75,7 @@ export type AppStackParams = {
   ToolDetail: { toolId: string };
   ToolForm: { toolId?: string } | undefined;
   Checkout: { tool: Tool };
+  BatchCheckout: undefined;
   Return: { tool: Tool };
   Transfer: { tool: Tool };
   Scanner: undefined;

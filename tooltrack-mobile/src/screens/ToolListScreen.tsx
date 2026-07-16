@@ -4,7 +4,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMemo, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
-import { EmptyState, ErrorBanner, Screen, SelectChips } from '../components/ui';
+import { Button, EmptyState, ErrorBanner, Screen, SelectChips } from '../components/ui';
 import { ToolCard } from '../components/ToolCard';
 import { useTools } from '../hooks/useTools';
 import { colors } from '../theme';
@@ -21,6 +21,7 @@ export function ToolListScreen() {
     <View style={styles.top}><TextInput value={search} onChangeText={setSearch} placeholder="Search tools or asset #" placeholderTextColor="#8D999F" style={styles.search} />
       {session?.user.role !== 'EMPLOYEE' && <Text style={styles.add} onPress={() => navigation.navigate('ToolForm')}>＋</Text>}</View>
     <SelectChips label="Status" value={filter} options={filters} onChange={value => setFilter(value as typeof filter)} /><ErrorBanner message={error} />
+    <Button title="Check out multiple tools" variant="secondary" onPress={() => navigation.navigate('BatchCheckout')} />
     <FlatList data={shown} keyExtractor={item => item.id} contentContainerStyle={{ gap: 10, paddingBottom: 30, flexGrow: 1 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={reload} tintColor={colors.orange} />}
       renderItem={({ item }) => <ToolCard tool={item} onPress={() => navigation.navigate('ToolDetail', { toolId: item.id })} />}

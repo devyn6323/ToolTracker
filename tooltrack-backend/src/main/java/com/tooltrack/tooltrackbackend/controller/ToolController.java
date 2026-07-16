@@ -1,6 +1,7 @@
 package com.tooltrack.tooltrackbackend.controller;
 
 import com.tooltrack.tooltrackbackend.dto.CheckoutRequest;
+import com.tooltrack.tooltrackbackend.dto.BatchCheckoutRequest;
 import com.tooltrack.tooltrackbackend.dto.ReturnRequest;
 import com.tooltrack.tooltrackbackend.dto.ToolRequest;
 import com.tooltrack.tooltrackbackend.dto.ToolResponse;
@@ -70,6 +71,12 @@ public class ToolController {
     public TransactionResponse checkout(@PathVariable UUID id, @Valid @RequestBody CheckoutRequest request,
                                         @AuthenticationPrincipal UserPrincipal principal) {
         return toolService.checkout(id, request, principal);
+    }
+
+    @PostMapping("/checkout/batch")
+    public List<TransactionResponse> checkoutBatch(@Valid @RequestBody BatchCheckoutRequest request,
+                                                   @AuthenticationPrincipal UserPrincipal principal) {
+        return toolService.checkoutBatch(request, principal);
     }
 
     @PostMapping("/{id}/return")

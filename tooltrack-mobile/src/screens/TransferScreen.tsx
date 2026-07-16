@@ -3,14 +3,14 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ApiError, request } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { Button, Card, ErrorBanner, Input, Screen, SectionTitle, pretty } from '../components/ui';
+import { Button, Card, DateField, ErrorBanner, Input, Screen, SectionTitle, pretty, toInputDate } from '../components/ui';
 import { colors } from '../theme';
 import { AppStackParams, ToolTransaction, UserSummary } from '../types';
 
 export function TransferScreen({ route, navigation }: NativeStackScreenProps<AppStackParams, 'Transfer'>) {
   const { tool } = route.params; const { session } = useAuth();
   const [employees, setEmployees] = useState<UserSummary[]>([]); const [targetId, setTargetId] = useState('');
-  const [location, setLocation] = useState(tool.currentLocation || ''); const [due, setDue] = useState(tool.expectedReturnAt?.slice(0, 10) || '');
+  const [location, setLocation] = useState(tool.currentLocation || ''); const [due, setDue] = useState(tool.expectedReturnAt ? toInputDate(new Date(tool.expectedReturnAt)) : '');
   const [notes, setNotes] = useState(''); const [loading, setLoading] = useState(false); const [error, setError] = useState('');
 
   useEffect(() => { request<UserSummary[]>('/api/employees', {}, session?.token)
@@ -20,7 +20,7 @@ export function TransferScreen({ route, navigation }: NativeStackScreenProps<App
   async function submit() {
     if (!targetId) return setError('Choose the employee receiving this tool.');
     let expectedReturnAt: string | null = null;
-    if (due) { const date = new Date(`${due}T17:00:00`); if (Number.isNaN(date.getTime())) return setError('Enter the due date as YYYY-MM-DD.'); expectedReturnAt = date.toISOString(); }
+    if (due) { const date = new Date(`${due}T17:00:00`); if (Number.isNaN(date.getTime())) return setError('Choose a valid due date.'); expectedReturnAt = date.toISOString(); }
     setLoading(true); setError('');
     try { await request<ToolTransaction>(`/api/tools/${tool.id}/transfer`, { method: 'POST', body: JSON.stringify({ targetUserId: targetId, location, expectedReturnAt, notes }) }, session?.token); navigation.replace('ToolDetail', { toolId: tool.id }); }
     catch (e) { setError(e instanceof ApiError ? e.message : 'Could not transfer tool.'); }
@@ -33,7 +33,7 @@ export function TransferScreen({ route, navigation }: NativeStackScreenProps<App
     <View style={styles.people}>{employees.map(employee => <Pressable key={employee.id} onPress={() => setTargetId(employee.id)} style={[styles.person, targetId === employee.id && styles.personSelected]}><View style={[styles.avatar, targetId === employee.id && styles.avatarSelected]}><Text style={[styles.initials, targetId === employee.id && { color: '#fff' }]}>{employee.name.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase()}</Text></View><View style={{ flex: 1 }}><Text style={styles.personName}>{employee.name}</Text><Text style={styles.personRole}>{pretty(employee.role)}</Text></View><View style={[styles.radio, targetId === employee.id && styles.radioSelected]}>{targetId === employee.id && <View style={styles.radioDot} />}</View></Pressable>)}</View>
     {!employees.length && <Text style={styles.meta}>No other active employees are available. Ask a manager to add the recipient first.</Text>}
     <Input label="New location" value={location} onChangeText={setLocation} placeholder="Job site or shop" />
-    <Input label="Expected return date" value={due} onChangeText={setDue} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" />
+    <DateField label="Expected return date" value={due} onChange={setDue} minimumDate={new Date()} optional />
     <Input label="Transfer notes" value={notes} onChangeText={setNotes} multiline placeholder="Parts included or handoff details" />
     <Button title="Confirm transfer" onPress={submit} loading={loading} disabled={!employees.length} />
   </Screen>;

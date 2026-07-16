@@ -1,6 +1,7 @@
 package com.tooltrack.tooltrackbackend.service;
 
 import com.tooltrack.tooltrackbackend.dto.CheckoutRequest;
+import com.tooltrack.tooltrackbackend.dto.BatchCheckoutRequest;
 import com.tooltrack.tooltrackbackend.dto.ReturnRequest;
 import com.tooltrack.tooltrackbackend.dto.ToolRequest;
 import com.tooltrack.tooltrackbackend.dto.ToolResponse;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.UUID;
 
 @Service
@@ -109,6 +111,28 @@ public class ToolService {
         transactionRepository.save(transaction);
         toolRepository.save(tool);
         return toTransactionResponse(transaction);
+    }
+
+    @Transactional
+    public List<TransactionResponse> checkoutBatch(BatchCheckoutRequest request, UserPrincipal principal) {
+        LinkedHashSet<UUID> uniqueIds = new LinkedHashSet<>(request.toolIds());
+        if (uniqueIds.size() != request.toolIds().size()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Each tool can only be selected once");
+        }
+
+        List<ToolItem> tools = uniqueIds.stream().map(id -> findTool(id, principal)).toList();
+        for (ToolItem tool : tools) {
+            boolean alreadyCheckedOut = transactionRepository
+                    .findFirstByToolIdAndReturnedAtIsNullOrderByCheckedOutAtDesc(tool.getId()).isPresent();
+            if (tool.getStatus() != ToolStatus.AVAILABLE || alreadyCheckedOut) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                        tool.getAssetNumber() + " is no longer available for checkout");
+            }
+        }
+
+        CheckoutRequest shared = new CheckoutRequest(request.jobName(), request.location(),
+                request.expectedReturnAt(), null, request.notes());
+        return tools.stream().map(tool -> checkout(tool.getId(), shared, principal)).toList();
     }
 
     @Transactional

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Image, Text, StyleSheet, View } from 'react-native';
 import { ApiError, assetUrl, request, uploadToolPhoto } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { Button, ErrorBanner, Input, Screen, SelectChips } from '../components/ui';
+import { Button, DateField, ErrorBanner, Input, Screen, SelectChips } from '../components/ui';
 import { colors } from '../theme';
 import { AppStackParams, Tool, ToolCondition, ToolStatus } from '../types';
 
@@ -16,16 +16,26 @@ export function ToolFormScreen({ route, navigation }: NativeStackScreenProps<App
   const [loading, setLoading] = useState(false); const [uploading, setUploading] = useState(false); const [error, setError] = useState('');
   useEffect(() => { if (id) request<Tool>(`/api/tools/${id}`, {}, session?.token).then(tool => setForm({ assetNumber: tool.assetNumber, name: tool.name, category: tool.category || '', manufacturer: tool.manufacturer || '', model: tool.model || '', serialNumber: tool.serialNumber || '', purchaseDate: tool.purchaseDate || '', condition: tool.condition, status: tool.status === 'OVERDUE' ? 'CHECKED_OUT' : tool.status, currentLocation: tool.currentLocation || '', photoUrl: tool.photoUrl || '', notes: tool.notes || '' })).catch(e => setError(e.message)); }, [id, session?.token]);
   const set = (key: keyof typeof form, value: string) => setForm(current => ({ ...current, [key]: value }));
-  async function choosePhoto() {
-    setError('');
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return setError('Photo library access is needed to select a tool photo.');
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [4, 3], quality: 0.8 });
+  async function uploadPhoto(result: ImagePicker.ImagePickerResult) {
     if (result.canceled || !session?.token) return;
+    const asset = result.assets[0];
+    if (asset.fileSize && asset.fileSize > 8 * 1024 * 1024) return setError('Choose a photo smaller than 8 MB.');
     setUploading(true);
-    try { set('photoUrl', await uploadToolPhoto(result.assets[0], session.token)); }
+    try { set('photoUrl', await uploadToolPhoto(asset, session.token)); }
     catch (e) { setError(e instanceof Error ? e.message : 'Could not upload photo.'); }
     finally { setUploading(false); }
+  }
+  async function choosePhoto() {
+    setError('');
+    try { await uploadPhoto(await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [4, 3], quality: 0.65 })); }
+    catch { setError('The photo library could not be opened. Check the app permissions and try again.'); }
+  }
+  async function takePhoto() {
+    setError('');
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) return setError('Camera access is needed to take a tool photo.');
+    try { await uploadPhoto(await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [4, 3], quality: 0.65 })); }
+    catch { setError('The camera could not be opened. Check the app permissions and try again.'); }
   }
   async function save() {
     if (!form.assetNumber.trim() || !form.name.trim()) return setError('Asset number and tool name are required.');
@@ -39,11 +49,11 @@ export function ToolFormScreen({ route, navigation }: NativeStackScreenProps<App
     <Input label="Category" value={form.category} onChangeText={v => set('category', v)} placeholder="Power Tools" />
     <Input label="Manufacturer" value={form.manufacturer} onChangeText={v => set('manufacturer', v)} placeholder="DeWalt" />
     <Input label="Model" value={form.model} onChangeText={v => set('model', v)} /><Input label="Serial number" value={form.serialNumber} onChangeText={v => set('serialNumber', v)} />
-    <Input label="Purchase date" value={form.purchaseDate} onChangeText={v => set('purchaseDate', v)} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" />
+    <DateField label="Purchase date" value={form.purchaseDate} onChange={v => set('purchaseDate', v)} maximumDate={new Date()} optional />
     <SelectChips label="Condition" value={form.condition} options={conditions} onChange={v => set('condition', v)} />
     {id && !['CHECKED_OUT', 'OVERDUE'].includes(form.status) && <SelectChips label="Status" value={form.status} options={statuses} onChange={v => set('status', v)} />}
     <Input label="Current location" value={form.currentLocation} onChangeText={v => set('currentLocation', v)} placeholder="Main Shop" />
-    <View style={styles.photoSection}><Text style={styles.photoLabel}>Tool photo</Text>{form.photoUrl ? <Image source={{ uri: assetUrl(form.photoUrl) }} style={styles.photo} /> : <View style={styles.photoEmpty}><Text style={styles.photoEmptyText}>No photo selected</Text></View>}<View style={styles.photoActions}><Button title={form.photoUrl ? 'Replace photo' : 'Choose photo'} variant="secondary" onPress={choosePhoto} loading={uploading} style={{ flex: 1 }} />{!!form.photoUrl && <Button title="Remove" variant="ghost" onPress={() => set('photoUrl', '')} />}</View></View>
+    <View style={styles.photoSection}><Text style={styles.photoLabel}>Tool photo</Text>{form.photoUrl ? <Image source={{ uri: assetUrl(form.photoUrl) }} style={styles.photo} /> : <View style={styles.photoEmpty}><Text style={styles.photoEmptyText}>No photo selected</Text></View>}<View style={styles.photoActions}><Button title="Photo library" variant="secondary" onPress={choosePhoto} loading={uploading} style={{ flex: 1 }} /><Button title="Take photo" variant="secondary" onPress={takePhoto} disabled={uploading} style={{ flex: 1 }} /></View>{!!form.photoUrl && <Button title="Remove photo" variant="ghost" onPress={() => set('photoUrl', '')} />}</View>
     <Input label="Notes" value={form.notes} onChangeText={v => set('notes', v)} multiline />
     <Button title={id ? 'Save changes' : 'Add tool'} onPress={save} loading={loading} />
   </Screen>;
