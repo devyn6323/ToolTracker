@@ -68,11 +68,9 @@ CLOUDINARY_URL=cloudinary://api-key:api-secret@cloud-name
 PHOTO_STORAGE=cloudinary
 GOOGLE_WEB_CLIENT_ID=your-web-oauth-client-id.apps.googleusercontent.com
 SUPPORT_EMAIL=support@your-real-domain.com
-MAIL_FROM=ToolTrack <support@your-real-domain.com>
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USERNAME=...
-SMTP_PASSWORD=...
+MAIL_FROM=support@your-real-domain.com
+MAIL_FROM_NAME=ToolTrack
+SENDGRID_API_KEY=SG.your-restricted-mail-send-key
 ```
 
 Terminate TLS at the hosting provider and enable automated database and volume backups. Local files are suitable only when the host provides a durable volume; move photo storage to S3 or Cloudinary before deploying without one.
@@ -93,10 +91,8 @@ CLOUDINARY_URL=<Cloudinary API environment URL>
 PHOTO_STORAGE=cloudinary
 GOOGLE_WEB_CLIENT_ID=<Google Web OAuth client ID>
 MAIL_FROM=<verified sender address>
-SMTP_HOST=<SMTP provider host>
-SMTP_PORT=587
-SMTP_USERNAME=<SMTP username>
-SMTP_PASSWORD=<SMTP password>
+MAIL_FROM_NAME=ToolTrack
+SENDGRID_API_KEY=<restricted SendGrid key with Mail Send permission>
 ```
 
 Use the database's internal URL when the web service and database are in the same Render account and region. Set the web service health check path to `/actuator/health`.
