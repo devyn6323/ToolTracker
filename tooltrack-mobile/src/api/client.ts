@@ -24,9 +24,12 @@ export class ApiError extends Error {
 export async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
   ensureConfigured();
   let response: Response;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 75_000);
   try {
     response = await fetch(`${API_URL}${path}`, {
       ...options,
+      signal: controller.signal,
       headers: {
         Accept: 'application/json',
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
@@ -34,8 +37,12 @@ export async function request<T>(path: string, options: RequestInit = {}, token?
         ...options.headers,
       },
     });
-  } catch {
-    throw new ApiError('Could not reach ToolTrack. Check your connection and try again.', 0);
+  } catch (error) {
+    throw new ApiError(error instanceof Error && error.name === 'AbortError'
+      ? 'ToolTrack took too long to respond. Check your connection and try again.'
+      : 'Could not reach ToolTrack. Check your connection and try again.', 0);
+  } finally {
+    clearTimeout(timeout);
   }
 
   const text = await response.text();
@@ -57,14 +64,21 @@ export async function uploadToolPhoto(asset: { uri: string; fileName?: string | 
     type: asset.mimeType || 'image/jpeg',
   } as unknown as Blob);
   let response: Response;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000);
   try {
     response = await fetch(`${API_URL}/api/uploads/tool-photo`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
       body: form,
+      signal: controller.signal,
     });
-  } catch {
-    throw new ApiError('Could not upload the photo. Check your connection and try again.', 0);
+  } catch (error) {
+    throw new ApiError(error instanceof Error && error.name === 'AbortError'
+      ? 'The photo upload took too long. Check your connection and try again.'
+      : 'Could not upload the photo. Check your connection and try again.', 0);
+  } finally {
+    clearTimeout(timeout);
   }
   const text = await response.text();
   let data: any;
@@ -72,4 +86,10 @@ export async function uploadToolPhoto(asset: { uri: string; fileName?: string | 
   catch { data = {}; }
   if (!response.ok) throw new ApiError(data?.detail || 'Could not upload photo', response.status);
   return data.url as string;
+}
+
+export async function deleteToolPhoto(url: string, token: string) {
+  await request<void>('/api/uploads/tool-photo', {
+    method: 'DELETE', body: JSON.stringify({ url }),
+  }, token);
 }

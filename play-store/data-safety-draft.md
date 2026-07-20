@@ -8,8 +8,8 @@ Confirm these answers against the deployed production services and every third-p
 | --- | --- | --- | --- |
 | Name | Account identity and activity attribution | Yes | Encrypted in transit; removed or anonymized on deletion |
 | Email address | Login, employee accounts, and support | Yes | Encrypted in transit; removed or anonymized on deletion |
-| User IDs | Company-scoped authentication | Yes | Encrypted in transit |
-| Photos | User-selected tool inventory photos | No | Encrypted in transit; owner company deletion removes local stored files |
+| User IDs | Company-scoped authentication, including a Google account subject when Google sign-in is chosen | Yes | Encrypted in transit |
+| Photos | User-selected tool inventory photos | No | Encrypted in transit; stored by Cloudinary; replacement, cancellation, and owner company deletion remove managed files |
 | Other user-generated content | Tool notes, condition notes, job and location labels | No | Encrypted in transit; used only for inventory workflows |
 | App interactions | Tool checkout, transfer, return, and history events | Yes | Encrypted in transit; used to provide the service |
 
@@ -18,7 +18,7 @@ Confirm these answers against the deployed production services and every third-p
 - Data is collected for app functionality and account management.
 - Data is not sold.
 - Data is not used for advertising or marketing.
-- Data is shared only with infrastructure providers acting as service providers. List the actual production database, hosting, storage, monitoring, and email vendors before submission.
+- Data is shared only with infrastructure providers acting as service providers. Current providers include Render for API/database hosting, Cloudinary for user-requested tool-photo storage, and Google when a user chooses Google authentication. List any additional monitoring or email vendors before submission.
 - All production traffic must use HTTPS.
 - Users can request deletion in the app and through the deployed `/delete-account` page.
 - The app is not directed to children.
@@ -28,6 +28,7 @@ Confirm these answers against the deployed production services and every third-p
 
 - Camera: QR scanning initiated by the user.
 - Photo access: selecting a tool photo initiated by a manager. Android may use the system photo picker rather than broad library access depending on OS behavior.
+- Google account: optional authentication receives the verified account name, email, and stable Google user identifier. ToolTrack does not request access to Google Drive, contacts, calendar, or Gmail.
 - Microphone and device location are not requested.
 
 ## Before submission

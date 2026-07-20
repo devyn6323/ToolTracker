@@ -4,17 +4,20 @@ import { API_URL, request } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Button, Card, ErrorBanner, Input, Screen, SectionTitle } from '../components/ui';
 import { colors } from '../theme';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppStackParams } from '../types';
 
 const privacyUrl = process.env.EXPO_PUBLIC_PRIVACY_URL || (API_URL ? `${API_URL}/privacy` : undefined);
 const deletionUrl = process.env.EXPO_PUBLIC_DELETE_ACCOUNT_URL || (API_URL ? `${API_URL}/delete-account` : undefined);
 const supportEmail = process.env.EXPO_PUBLIC_SUPPORT_EMAIL;
 
-export function SettingsScreen() {
-  const { session, logout } = useAuth();
+export function SettingsScreen({ navigation }: NativeStackScreenProps<AppStackParams, 'Settings'>) {
+  const { session, logout, googleReauthenticationToken } = useAuth();
   const [password, setPassword] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const owner = session?.user.role === 'OWNER';
+  const passwordLoginEnabled = session?.passwordLoginEnabled !== false;
 
   async function open(url?: string) {
     if (!url) {
@@ -26,7 +29,7 @@ export function SettingsScreen() {
 
   function confirmDeletion() {
     setError('');
-    if (!password) {
+    if (passwordLoginEnabled && !password) {
       setError('Enter your password to confirm deletion.');
       return;
     }
@@ -46,9 +49,12 @@ export function SettingsScreen() {
     if (!session) return;
     setDeleting(true);
     try {
+      const confirmation = passwordLoginEnabled
+        ? { password }
+        : { googleIdToken: await googleReauthenticationToken() };
       await request<void>('/api/auth/account', {
         method: 'DELETE',
-        body: JSON.stringify({ password }),
+        body: JSON.stringify(confirmation),
       }, session.token);
       await logout();
     } catch (e) {
@@ -64,6 +70,7 @@ export function SettingsScreen() {
       <Text style={styles.meta}>{session?.user.email}</Text>
       <Text style={styles.meta}>{session?.companyName} · {session?.user.role}</Text>
       <Button title="Sign out" variant="secondary" onPress={logout} style={styles.cardButton} />
+      {passwordLoginEnabled && <Button title="Change password" variant="ghost" onPress={() => navigation.navigate('ChangePassword')} />}
     </Card>
 
     <SectionTitle title="Privacy & support" />
@@ -81,8 +88,10 @@ export function SettingsScreen() {
       <Text style={styles.body}>{owner
         ? 'As the owner, deleting your account also permanently removes the company and all of its ToolTrack data.'
         : 'Your login will be disabled and identifying account details will be removed. Historical tool records retain an anonymous “Deleted user” label.'}</Text>
-      <Input label="Confirm with your password" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" />
-      <Button title="Delete permanently" variant="danger" loading={deleting} onPress={confirmDeletion} />
+      {passwordLoginEnabled
+        ? <Input label="Confirm with your password" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" />
+        : <Text style={styles.body}>You will be asked to confirm the Google account linked to ToolTrack.</Text>}
+      <Button title={passwordLoginEnabled ? 'Delete permanently' : 'Confirm with Google and delete'} variant="danger" loading={deleting} onPress={confirmDeletion} />
     </Card>
   </Screen>;
 }

@@ -10,6 +10,7 @@ import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<AppUser, UUID> {
     Optional<AppUser> findByEmailIgnoreCase(String email);
+    Optional<AppUser> findByGoogleSubject(String googleSubject);
     @EntityGraph(attributePaths = "company")
     Optional<AppUser> findWithCompanyById(UUID id);
     boolean existsByEmailIgnoreCase(String email);

@@ -30,14 +30,19 @@ public class JwtService {
                 .subject(user.getId().toString())
                 .claim("companyId", user.getCompany().getId().toString())
                 .claim("role", user.getRole().name())
+                .claim("sessionVersion", user.getSessionVersion())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusMillis(expirationMillis)))
                 .signWith(key)
                 .compact();
     }
 
-    public UUID parseUserId(String token) {
+    public JwtIdentity parseIdentity(String token) {
         Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
-        return UUID.fromString(claims.getSubject());
+        Integer sessionVersion = claims.get("sessionVersion", Integer.class);
+        return new JwtIdentity(UUID.fromString(claims.getSubject()), sessionVersion == null ? 0 : sessionVersion);
+    }
+
+    public record JwtIdentity(UUID userId, int sessionVersion) {
     }
 }

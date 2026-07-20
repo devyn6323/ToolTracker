@@ -1,6 +1,8 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
+import { GoogleCompanyScreen } from '../screens/auth/GoogleCompanyScreen';
+import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
 import { colors } from '../theme';
 import { AuthStackParams } from '../types';
 
@@ -10,5 +12,7 @@ export function AuthNavigator() {
   return <Stack.Navigator screenOptions={{ headerShadowVisible: false, headerStyle: { backgroundColor: colors.paper }, headerTintColor: colors.navy }}>
     <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
     <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Create company' }} />
+    <Stack.Screen name="GoogleCompany" component={GoogleCompanyScreen} options={{ title: 'Google setup' }} />
+    <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: 'Password recovery' }} />
   </Stack.Navigator>;
 }

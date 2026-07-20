@@ -16,6 +16,15 @@ export interface AuthResponse {
   companyId: string;
   companyName: string;
   user: UserSummary;
+  passwordLoginEnabled: boolean;
+  passwordChangeRequired: boolean;
+}
+
+export interface GoogleAuthResponse {
+  onboardingRequired: boolean;
+  session?: AuthResponse;
+  email: string;
+  name: string;
 }
 
 export interface Tool {
@@ -68,6 +77,8 @@ export interface DashboardData {
 export type AuthStackParams = {
   Login: undefined;
   Register: undefined;
+  GoogleCompany: { name: string; email: string };
+  ForgotPassword: { email?: string } | undefined;
 };
 
 export type AppStackParams = {
@@ -81,6 +92,8 @@ export type AppStackParams = {
   Scanner: undefined;
   Employees: undefined;
   Settings: undefined;
+  ChangePassword: undefined;
+  TransferOwnership: { employee: UserSummary };
 };
 
 export type TabParams = {

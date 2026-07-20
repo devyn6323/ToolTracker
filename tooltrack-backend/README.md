@@ -10,7 +10,12 @@ Spring Boot API for ToolTrack's first usable inventory and checkout workflow.
 - Owner/admin/manager inventory administration
 - Employee and manager account creation
 - Tool QR values and lookup after a scan
-- Local-development tool photo uploads
+- Local-development uploads and durable Cloudinary tool-photo storage in production
+- Password and verified Google account authentication
+- Expiring single-use password reset codes, forced temporary-password changes, and session revocation
+- Owner transfer with password or Google reauthentication
+- Company-scoped photo uploads with replacement and cancellation cleanup
+- Rate limits for public authentication and photo-upload endpoints
 - Single- and multi-tool checkout, return, current holder, due date, and checkout history
 - Holder-to-holder tool transfer
 - Dynamic overdue status and damaged/lost return handling
@@ -59,7 +64,15 @@ DATABASE_USERNAME=...
 DATABASE_PASSWORD=...
 JWT_SECRET=a-random-secret-of-at-least-32-bytes
 UPLOAD_DIR=/data/uploads
+CLOUDINARY_URL=cloudinary://api-key:api-secret@cloud-name
+PHOTO_STORAGE=cloudinary
+GOOGLE_WEB_CLIENT_ID=your-web-oauth-client-id.apps.googleusercontent.com
 SUPPORT_EMAIL=support@your-real-domain.com
+MAIL_FROM=ToolTrack <support@your-real-domain.com>
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=...
+SMTP_PASSWORD=...
 ```
 
 Terminate TLS at the hosting provider and enable automated database and volume backups. Local files are suitable only when the host provides a durable volume; move photo storage to S3 or Cloudinary before deploying without one.
@@ -76,6 +89,14 @@ DATABASE_URL=<Render Internal Database URL>
 JWT_SECRET=<random secret of at least 32 bytes>
 SUPPORT_EMAIL=<monitored address>
 UPLOAD_DIR=/data/uploads
+CLOUDINARY_URL=<Cloudinary API environment URL>
+PHOTO_STORAGE=cloudinary
+GOOGLE_WEB_CLIENT_ID=<Google Web OAuth client ID>
+MAIL_FROM=<verified sender address>
+SMTP_HOST=<SMTP provider host>
+SMTP_PORT=587
+SMTP_USERNAME=<SMTP username>
+SMTP_PASSWORD=<SMTP password>
 ```
 
 Use the database's internal URL when the web service and database are in the same Render account and region. Set the web service health check path to `/actuator/health`.
@@ -88,6 +109,11 @@ All routes except registration and login require `Authorization: Bearer <token>`
 | --- | --- | --- |
 | POST | `/api/auth/register` | Public |
 | POST | `/api/auth/login` | Public |
+| POST | `/api/auth/google` | Public; verifies a Google ID token, links an existing invited email, or creates an owner company |
+| POST | `/api/auth/password/forgot` | Public; emails a reset code without disclosing account existence |
+| POST | `/api/auth/password/reset` | Public; consumes an expiring single-use reset code |
+| PUT | `/api/auth/password` | Current password account; changes password and revokes older sessions |
+| PUT | `/api/auth/ownership/{userId}` | Owner; transfers ownership after reauthentication |
 | DELETE | `/api/auth/account` | Current user; password confirmation required |
 | GET | `/privacy` | Public privacy policy |
 | GET | `/delete-account` | Public account deletion form |
@@ -105,6 +131,7 @@ All routes except registration and login require `Authorization: Bearer <token>`
 | GET | `/api/tools/{id}/history` | Any active user |
 | GET | `/api/tools/my-tools` | Any active user |
 | POST | `/api/uploads/tool-photo` | Owner, admin, manager |
+| DELETE | `/api/uploads/tool-photo` | Owner, admin, manager; removes an unused company-owned upload |
 | GET | `/api/dashboard` | Any active user |
 | GET | `/api/activity` | Any active user |
 

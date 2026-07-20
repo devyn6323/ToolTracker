@@ -7,6 +7,7 @@ import { AppErrorBoundary } from './src/components/AppErrorBoundary';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { AuthNavigator } from './src/navigation/AuthNavigator';
 import { navigationTheme } from './src/theme';
+import { ChangePasswordScreen } from './src/screens/ChangePasswordScreen';
 
 function Root() {
   const { session, restoring } = useAuth();
@@ -15,7 +16,7 @@ function Root() {
 
   return (
     <NavigationContainer theme={navigationTheme}>
-      {session ? <AppNavigator /> : <AuthNavigator />}
+      {session ? (session.passwordChangeRequired ? <ChangePasswordScreen /> : <AppNavigator />) : <AuthNavigator />}
     </NavigationContainer>
   );
 }

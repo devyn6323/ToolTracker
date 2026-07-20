@@ -31,9 +31,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (header != null && header.startsWith("Bearer ") && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
-                UUID userId = jwtService.parseUserId(header.substring(7));
-                AppUser user = userRepository.findWithCompanyById(userId).filter(AppUser::isActive).orElse(null);
-                if (user != null) {
+                JwtService.JwtIdentity identity = jwtService.parseIdentity(header.substring(7));
+                AppUser user = userRepository.findWithCompanyById(identity.userId()).filter(AppUser::isActive).orElse(null);
+                if (user != null && user.getSessionVersion() == identity.sessionVersion()) {
+                    if (user.isPasswordChangeRequired()
+                            && !(request.getMethod().equals("PUT") && request.getRequestURI().equals("/api/auth/password"))
+                            && !(request.getMethod().equals("DELETE") && request.getRequestURI().equals("/api/auth/account"))) {
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.setContentType("application/problem+json");
+                        response.getWriter().write("{\"title\":\"Password change required\",\"detail\":\"Replace the temporary password before using ToolTrack\",\"status\":403}");
+                        return;
+                    }
                     UserPrincipal principal = new UserPrincipal(user.getId(), user.getCompany().getId(), user.getEmail(), user.getRole());
                     var authentication = new UsernamePasswordAuthenticationToken(
                             principal, null, List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));

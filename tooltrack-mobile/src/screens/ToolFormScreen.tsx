@@ -1,8 +1,8 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Image, Text, StyleSheet, View } from 'react-native';
-import { ApiError, assetUrl, request, uploadToolPhoto } from '../api/client';
+import { ApiError, assetUrl, deleteToolPhoto, request, uploadToolPhoto } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Button, DateField, ErrorBanner, Input, Screen, SelectChips } from '../components/ui';
 import { colors } from '../theme';
@@ -14,14 +14,22 @@ export function ToolFormScreen({ route, navigation }: NativeStackScreenProps<App
   const { session } = useAuth(); const id = route.params?.toolId;
   const [form, setForm] = useState({ assetNumber: '', name: '', category: '', manufacturer: '', model: '', serialNumber: '', purchaseDate: '', condition: 'GOOD' as ToolCondition, status: 'AVAILABLE' as ToolStatus, currentLocation: '', photoUrl: '', notes: '' });
   const [loading, setLoading] = useState(false); const [uploading, setUploading] = useState(false); const [error, setError] = useState('');
+  const draftPhoto = useRef<string | undefined>(undefined);
   useEffect(() => { if (id) request<Tool>(`/api/tools/${id}`, {}, session?.token).then(tool => setForm({ assetNumber: tool.assetNumber, name: tool.name, category: tool.category || '', manufacturer: tool.manufacturer || '', model: tool.model || '', serialNumber: tool.serialNumber || '', purchaseDate: tool.purchaseDate || '', condition: tool.condition, status: tool.status === 'OVERDUE' ? 'CHECKED_OUT' : tool.status, currentLocation: tool.currentLocation || '', photoUrl: tool.photoUrl || '', notes: tool.notes || '' })).catch(e => setError(e.message)); }, [id, session?.token]);
+  useEffect(() => () => { if (draftPhoto.current && session?.token) void deleteToolPhoto(draftPhoto.current, session.token).catch(() => undefined); }, [session?.token]);
   const set = (key: keyof typeof form, value: string) => setForm(current => ({ ...current, [key]: value }));
   async function uploadPhoto(result: ImagePicker.ImagePickerResult) {
     if (result.canceled || !session?.token) return;
     const asset = result.assets[0];
     if (asset.fileSize && asset.fileSize > 8 * 1024 * 1024) return setError('Choose a photo smaller than 8 MB.');
     setUploading(true);
-    try { set('photoUrl', await uploadToolPhoto(asset, session.token)); }
+    try {
+      const uploaded = await uploadToolPhoto(asset, session.token);
+      const previousDraft = draftPhoto.current;
+      draftPhoto.current = uploaded;
+      set('photoUrl', uploaded);
+      if (previousDraft) void deleteToolPhoto(previousDraft, session.token).catch(() => undefined);
+    }
     catch (e) { setError(e instanceof Error ? e.message : 'Could not upload photo.'); }
     finally { setUploading(false); }
   }
@@ -40,7 +48,7 @@ export function ToolFormScreen({ route, navigation }: NativeStackScreenProps<App
   async function save() {
     if (!form.assetNumber.trim() || !form.name.trim()) return setError('Asset number and tool name are required.');
     setLoading(true); setError('');
-    try { const saved = await request<Tool>(id ? `/api/tools/${id}` : '/api/tools', { method: id ? 'PUT' : 'POST', body: JSON.stringify({ ...form, purchaseDate: form.purchaseDate || null, photoUrl: form.photoUrl || null }) }, session?.token); navigation.replace('ToolDetail', { toolId: saved.id }); }
+    try { const saved = await request<Tool>(id ? `/api/tools/${id}` : '/api/tools', { method: id ? 'PUT' : 'POST', body: JSON.stringify({ ...form, purchaseDate: form.purchaseDate || null, photoUrl: form.photoUrl || null }) }, session?.token); draftPhoto.current = undefined; navigation.replace('ToolDetail', { toolId: saved.id }); }
     catch (e) { setError(e instanceof ApiError ? e.message : 'Could not save tool.'); } finally { setLoading(false); }
   }
   return <Screen><Text style={styles.help}>{id ? 'Update the inventory record.' : 'Add the identifying details first. A unique QR value will be generated automatically.'}</Text><ErrorBanner message={error} />
@@ -53,7 +61,7 @@ export function ToolFormScreen({ route, navigation }: NativeStackScreenProps<App
     <SelectChips label="Condition" value={form.condition} options={conditions} onChange={v => set('condition', v)} />
     {id && !['CHECKED_OUT', 'OVERDUE'].includes(form.status) && <SelectChips label="Status" value={form.status} options={statuses} onChange={v => set('status', v)} />}
     <Input label="Current location" value={form.currentLocation} onChangeText={v => set('currentLocation', v)} placeholder="Main Shop" />
-    <View style={styles.photoSection}><Text style={styles.photoLabel}>Tool photo</Text>{form.photoUrl ? <Image source={{ uri: assetUrl(form.photoUrl) }} style={styles.photo} /> : <View style={styles.photoEmpty}><Text style={styles.photoEmptyText}>No photo selected</Text></View>}<View style={styles.photoActions}><Button title="Photo library" variant="secondary" onPress={choosePhoto} loading={uploading} style={{ flex: 1 }} /><Button title="Take photo" variant="secondary" onPress={takePhoto} disabled={uploading} style={{ flex: 1 }} /></View>{!!form.photoUrl && <Button title="Remove photo" variant="ghost" onPress={() => set('photoUrl', '')} />}</View>
+    <View style={styles.photoSection}><Text style={styles.photoLabel}>Tool photo</Text>{form.photoUrl ? <Image source={{ uri: assetUrl(form.photoUrl) }} style={styles.photo} /> : <View style={styles.photoEmpty}><Text style={styles.photoEmptyText}>No photo selected</Text></View>}<View style={styles.photoActions}><Button title="Photo library" variant="secondary" onPress={choosePhoto} loading={uploading} style={{ flex: 1 }} /><Button title="Take photo" variant="secondary" onPress={takePhoto} disabled={uploading} style={{ flex: 1 }} /></View>{!!form.photoUrl && <Button title="Remove photo" variant="ghost" onPress={() => { const pending = draftPhoto.current; draftPhoto.current = undefined; set('photoUrl', ''); if (pending && session?.token) void deleteToolPhoto(pending, session.token).catch(() => undefined); }} />}</View>
     <Input label="Notes" value={form.notes} onChangeText={v => set('notes', v)} multiline />
     <Button title={id ? 'Save changes' : 'Add tool'} onPress={save} loading={loading} />
   </Screen>;

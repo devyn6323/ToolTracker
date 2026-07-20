@@ -14,6 +14,8 @@ import { ToolFormScreen } from '../screens/ToolFormScreen';
 import { ToolListScreen } from '../screens/ToolListScreen';
 import { TransferScreen } from '../screens/TransferScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { ChangePasswordScreen } from '../screens/ChangePasswordScreen';
+import { TransferOwnershipScreen } from '../screens/TransferOwnershipScreen';
 import { colors } from '../theme';
 import { AppStackParams, TabParams } from '../types';
 
@@ -50,6 +52,8 @@ export function AppNavigator() {
     <Stack.Screen name="Scanner" component={ScannerScreen} options={{ title: 'Scan QR' }} />
     <Stack.Screen name="Employees" component={EmployeesScreen} options={{ title: 'Employees' }} />
     <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Account & privacy' }} />
+    <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: 'Change password' }} />
+    <Stack.Screen name="TransferOwnership" component={TransferOwnershipScreen} options={{ title: 'Transfer ownership' }} />
   </Stack.Navigator>;
 }
 

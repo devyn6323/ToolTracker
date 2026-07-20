@@ -21,10 +21,10 @@ public class PublicPageController {
                 <p><strong>Effective July 13, 2026</strong></p>
                 <p>ToolTrack provides tool inventory, QR scanning, employee checkout, and activity history for participating businesses.</p>
                 <h2>Information we collect</h2>
-                <p>We collect account and company information such as names, email addresses, roles, and encrypted password hashes. We also store tool records, selected tool photos, job or location labels, condition notes, and checkout activity entered by users.</p>
+                <p>We collect account and company information such as names, email addresses, roles, and encrypted password hashes. If you choose Google sign-in, we also receive your verified Google account name, email address, and stable account identifier for authentication. We also store tool records, selected tool photos, job or location labels, condition notes, and checkout activity entered by users.</p>
                 <p>The Android camera is used only when a user chooses to scan a tool QR code. Tool photos are accessed only when a user selects or captures one for an inventory record. ToolTrack does not collect GPS location, contacts, advertising identifiers, or payment-card information.</p>
                 <h2>How information is used and shared</h2>
-                <p>Information is used to authenticate users, operate company inventories, show tool custody and history, provide support, prevent abuse, and maintain service reliability. We do not sell personal information or use it for behavioral advertising. Data may be processed by hosting, database, file-storage, monitoring, and email providers solely to operate the service, or disclosed when legally required.</p>
+                <p>Information is used to authenticate users, operate company inventories, show tool custody and history, provide support, prevent abuse, and maintain service reliability. Google processes the optional Google authentication flow, and Cloudinary stores user-requested tool photos. We do not sell personal information or use it for behavioral advertising. Data may be processed by hosting, database, file-storage, monitoring, and email providers solely to operate the service, or disclosed when legally required.</p>
                 <h2>Retention and deletion</h2>
                 <p>Company data is retained while the company account is active. An owner who deletes their account deletes the company, users, tools, and activity history. When another user deletes an account, identifying account details are removed while tool history retains an anonymous “Deleted user” label so the business audit trail remains accurate. Backup copies expire under the service backup schedule.</p>
                 <h2>Security and choices</h2>
@@ -40,7 +40,7 @@ public class PublicPageController {
     public String deleteAccount() {
         return page("Delete a ToolTrack account", """
                 <h1>Delete a ToolTrack account</h1>
-                <p>Enter the same email and password used in ToolTrack. Deletion is permanent. If you are the company owner, the company’s tools, users, photos, and activity history will also be deleted.</p>
+                <p>Enter the same email and password used in ToolTrack. Deletion is permanent. If you are the company owner, the company’s tools, users, photos, and activity history will also be deleted. Accounts created only with Google can delete directly in the app after re-confirming Google, or contact support below from the registered email address.</p>
                 <form id="delete-form">
                   <label>Email<input id="email" type="email" autocomplete="username" required></label>
                   <label>Password<input id="password" type="password" autocomplete="current-password" required></label>

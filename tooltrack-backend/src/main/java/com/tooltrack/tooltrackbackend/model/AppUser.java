@@ -41,6 +41,26 @@ public class AppUser {
     @Column(nullable = false)
     private String passwordHash;
 
+    @Column(length = 255, unique = true)
+    private String googleSubject;
+
+    @Column(nullable = false)
+    private boolean passwordLoginEnabled = true;
+
+    @Column(nullable = false)
+    private boolean passwordChangeRequired;
+
+    @Column(nullable = false)
+    private int sessionVersion;
+
+    @Column(length = 64)
+    private String passwordResetCodeHash;
+
+    private Instant passwordResetExpiresAt;
+
+    @Column(nullable = false)
+    private int passwordResetAttempts;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;

@@ -24,6 +24,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
 import java.util.List;
@@ -37,6 +39,7 @@ public class ToolService {
     private final ToolTransactionRepository transactionRepository;
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
+    private final PhotoStorageService photoStorageService;
 
     @Transactional(readOnly = true)
     public List<ToolResponse> list(UserPrincipal principal) {
@@ -64,6 +67,7 @@ public class ToolService {
         }
         ToolItem tool = new ToolItem();
         tool.setCompany(companyRepository.getReferenceById(principal.companyId()));
+        photoStorageService.requireOwned(blankToNull(request.photoUrl()), principal.companyId());
         apply(tool, request, true);
         return toResponse(toolRepository.save(tool));
     }
@@ -71,6 +75,11 @@ public class ToolService {
     @Transactional
     public ToolResponse update(UUID id, ToolRequest request, UserPrincipal principal) {
         ToolItem tool = findTool(id, principal);
+        String previousPhotoUrl = tool.getPhotoUrl();
+        String nextPhotoUrl = blankToNull(request.photoUrl());
+        if (!java.util.Objects.equals(previousPhotoUrl, nextPhotoUrl)) {
+            photoStorageService.requireOwned(nextPhotoUrl, principal.companyId());
+        }
         if (!tool.getAssetNumber().equalsIgnoreCase(request.assetNumber().trim())
                 && toolRepository.existsByCompanyIdAndAssetNumberIgnoreCase(principal.companyId(), request.assetNumber().trim())) {
             throw new ApiException(HttpStatus.CONFLICT, "Asset number already exists in this company");
@@ -81,12 +90,15 @@ public class ToolService {
             throw new ApiException(HttpStatus.CONFLICT, "Return the tool before changing it to that status");
         }
         apply(tool, request, false);
+        if (previousPhotoUrl != null && !java.util.Objects.equals(previousPhotoUrl, nextPhotoUrl)) {
+            deletePhotoAfterCommit(previousPhotoUrl);
+        }
         return toResponse(tool);
     }
 
     @Transactional
     public TransactionResponse checkout(UUID id, CheckoutRequest request, UserPrincipal principal) {
-        ToolItem tool = findTool(id, principal);
+        ToolItem tool = findToolForUpdate(id, principal);
         if (tool.getStatus() != ToolStatus.AVAILABLE
                 || transactionRepository.findFirstByToolIdAndReturnedAtIsNullOrderByCheckedOutAtDesc(id).isPresent()) {
             throw new ApiException(HttpStatus.CONFLICT, "Tool is not available for checkout");
@@ -120,7 +132,7 @@ public class ToolService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Each tool can only be selected once");
         }
 
-        List<ToolItem> tools = uniqueIds.stream().map(id -> findTool(id, principal)).toList();
+        List<ToolItem> tools = uniqueIds.stream().sorted().map(id -> findToolForUpdate(id, principal)).toList();
         for (ToolItem tool : tools) {
             boolean alreadyCheckedOut = transactionRepository
                     .findFirstByToolIdAndReturnedAtIsNullOrderByCheckedOutAtDesc(tool.getId()).isPresent();
@@ -137,7 +149,7 @@ public class ToolService {
 
     @Transactional
     public TransactionResponse returnTool(UUID id, ReturnRequest request, UserPrincipal principal) {
-        ToolItem tool = findTool(id, principal);
+        ToolItem tool = findToolForUpdate(id, principal);
         ToolTransaction transaction = transactionRepository
                 .findFirstByToolIdAndReturnedAtIsNullOrderByCheckedOutAtDesc(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "Tool is not currently checked out"));
@@ -163,7 +175,7 @@ public class ToolService {
 
     @Transactional
     public TransactionResponse transfer(UUID id, TransferRequest request, UserPrincipal principal) {
-        ToolItem tool = findTool(id, principal);
+        ToolItem tool = findToolForUpdate(id, principal);
         ToolTransaction current = transactionRepository
                 .findFirstByToolIdAndReturnedAtIsNullOrderByCheckedOutAtDesc(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "Tool is not currently checked out"));
@@ -224,6 +236,11 @@ public class ToolService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Tool not found"));
     }
 
+    private ToolItem findToolForUpdate(UUID id, UserPrincipal principal) {
+        return toolRepository.findForUpdate(id, principal.companyId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Tool not found"));
+    }
+
     private void apply(ToolItem tool, ToolRequest request, boolean creating) {
         tool.setAssetNumber(request.assetNumber().trim());
         tool.setName(request.name().trim());
@@ -273,5 +290,14 @@ public class ToolService {
         String returned = blankToNull(returnNotes);
         if (returned == null) return checkoutNotes;
         return checkoutNotes == null ? "Return: " + returned : checkoutNotes + "\nReturn: " + returned;
+    }
+
+    private void deletePhotoAfterCommit(String photoUrl) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                photoStorageService.delete(photoUrl);
+            }
+        });
     }
 }

@@ -44,6 +44,7 @@ public class EmployeeService {
         employee.setName(request.name().trim());
         employee.setEmail(email);
         employee.setPasswordHash(passwordEncoder.encode(request.password()));
+        employee.setPasswordChangeRequired(true);
         employee.setRole(request.role());
         return UserSummary.from(userRepository.save(employee));
     }

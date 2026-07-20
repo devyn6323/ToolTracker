@@ -22,7 +22,7 @@ class FlywayMigrationIntegrationTests {
 
     @Test
     void flywayRunsApplicationMigrations() {
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("2");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("4");
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from information_schema.tables where table_name = 'app_users'",
                 Integer.class)).isEqualTo(1);
