@@ -70,7 +70,7 @@ GOOGLE_WEB_CLIENT_ID=your-web-oauth-client-id.apps.googleusercontent.com
 SUPPORT_EMAIL=support@your-real-domain.com
 MAIL_FROM=support@your-real-domain.com
 MAIL_FROM_NAME=ToolTrack
-SENDGRID_API_KEY=SG.your-restricted-mail-send-key
+BREVO_API_KEY=your-brevo-transactional-email-api-key
 ```
 
 Terminate TLS at the hosting provider and enable automated database and volume backups. Local files are suitable only when the host provides a durable volume; move photo storage to S3 or Cloudinary before deploying without one.
@@ -92,7 +92,7 @@ PHOTO_STORAGE=cloudinary
 GOOGLE_WEB_CLIENT_ID=<Google Web OAuth client ID>
 MAIL_FROM=<verified sender address>
 MAIL_FROM_NAME=ToolTrack
-SENDGRID_API_KEY=<restricted SendGrid key with Mail Send permission>
+BREVO_API_KEY=<Brevo transactional email API key>
 ```
 
 Use the database's internal URL when the web service and database are in the same Render account and region. Set the web service health check path to `/actuator/health`.

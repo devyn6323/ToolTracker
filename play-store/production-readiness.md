@@ -8,7 +8,7 @@ Do not promote ToolTrack from testing to production until every required item be
 - PostgreSQL automated backups are enabled with a documented retention period.
 - Restore the latest PostgreSQL backup into a separate test database and verify company, user, tool, and transaction counts.
 - Cloudinary is configured through `CLOUDINARY_URL`; its API secret is never placed in EAS or the mobile bundle.
-- SendGrid HTTPS delivery is configured and password reset messages reach the inbox and spam folder tests.
+- Brevo HTTPS delivery is configured and password reset messages reach the inbox and spam folder tests.
 - Google OAuth contains the Play app-signing and EAS signing SHA-1 certificates.
 - Render alerts notify the monitored support address when the web service is unhealthy or repeatedly restarts.
 - Render error logs are reviewed for `incidentId` entries and retained long enough to investigate tester reports.

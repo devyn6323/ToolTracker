@@ -2,7 +2,6 @@ package com.tooltrack.tooltrackbackend.service;
 
 import com.tooltrack.tooltrackbackend.exception.ApiException;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -19,36 +18,36 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 class PasswordResetMailServiceTests {
     @Test
-    void sendsResetCodeThroughSendGridHttpsApi() {
-        RestClient.Builder builder = RestClient.builder().baseUrl("https://api.sendgrid.test");
+    void sendsResetCodeThroughBrevoHttpsApi() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("https://api.brevo.test");
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
         PasswordResetMailService service = new PasswordResetMailService(
-                builder.build(), "SG.test-key", "support@example.com", "ToolTrack", true);
+                builder.build(), "brevo-test-key", "support@example.com", "ToolTrack", true);
 
-        server.expect(once(), requestTo("https://api.sendgrid.test/v3/mail/send"))
+        server.expect(once(), requestTo("https://api.brevo.test/v3/smtp/email"))
                 .andExpect(method(HttpMethod.POST))
-                .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer SG.test-key"))
+                .andExpect(header("api-key", "brevo-test-key"))
                 .andExpect(content().json("""
                         {
-                          "personalizations":[{"to":[{"email":"owner@example.com","name":"Demo Owner"}]}],
-                          "from":{"email":"support@example.com","name":"ToolTrack"},
+                          "sender":{"email":"support@example.com","name":"ToolTrack"},
+                          "to":[{"email":"owner@example.com","name":"Demo Owner"}],
                           "subject":"Your ToolTrack password reset code",
-                          "content":[{"type":"text/plain","value":"Hello Demo Owner,\\n\\nYour ToolTrack password reset code is 12345678. It expires in 15 minutes and can only be used once.\\n\\nIf you did not request this, you can ignore this email."}]
+                          "textContent":"Hello Demo Owner,\\n\\nYour ToolTrack password reset code is 12345678. It expires in 15 minutes and can only be used once.\\n\\nIf you did not request this, you can ignore this email."
                         }
                         """))
-                .andRespond(withStatus(HttpStatus.ACCEPTED));
+                .andRespond(withStatus(HttpStatus.CREATED));
 
         service.sendResetCode("owner@example.com", "Demo Owner", "12345678");
         server.verify();
     }
 
     @Test
-    void convertsSendGridRejectionIntoTemporaryServiceError() {
-        RestClient.Builder builder = RestClient.builder().baseUrl("https://api.sendgrid.test");
+    void convertsBrevoRejectionIntoTemporaryServiceError() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("https://api.brevo.test");
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
         PasswordResetMailService service = new PasswordResetMailService(
-                builder.build(), "SG.invalid", "support@example.com", "ToolTrack", true);
-        server.expect(requestTo("https://api.sendgrid.test/v3/mail/send"))
+                builder.build(), "brevo-invalid", "support@example.com", "ToolTrack", true);
+        server.expect(requestTo("https://api.brevo.test/v3/smtp/email"))
                 .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
 
         assertThatThrownBy(() -> service.sendResetCode("owner@example.com", "Demo Owner", "12345678"))

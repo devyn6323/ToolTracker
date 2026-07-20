@@ -3,7 +3,6 @@ package com.tooltrack.tooltrackbackend.service;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -25,11 +24,11 @@ public class PasswordResetMailService {
     private final boolean required;
 
     @Autowired
-    public PasswordResetMailService(@Value("${app.sendgrid.api-key:}") String apiKey,
+    public PasswordResetMailService(@Value("${app.brevo.api-key:}") String apiKey,
                                     @Value("${app.mail.from:}") String from,
                                     @Value("${app.mail.from-name:ToolTrack}") String fromName,
                                     @Value("${app.mail.required:false}") boolean required,
-                                    @Value("${app.sendgrid.base-url:https://api.sendgrid.com}") String baseUrl) {
+                                    @Value("${app.brevo.base-url:https://api.brevo.com}") String baseUrl) {
         this(createClient(baseUrl), apiKey, from, fromName, required);
     }
 
@@ -44,7 +43,7 @@ public class PasswordResetMailService {
     @PostConstruct
     void validateProductionConfiguration() {
         if (required && (apiKey.isBlank() || from.isBlank())) {
-            throw new IllegalStateException("SENDGRID_API_KEY and MAIL_FROM are required when password email is enabled");
+            throw new IllegalStateException("BREVO_API_KEY and MAIL_FROM are required when password email is enabled");
         }
     }
 
@@ -55,15 +54,15 @@ public class PasswordResetMailService {
         String text = "Hello " + name + ",\n\nYour ToolTrack password reset code is " + code
                 + ". It expires in 15 minutes and can only be used once.\n\n"
                 + "If you did not request this, you can ignore this email.";
-        SendGridMessage message = new SendGridMessage(
-                List.of(new Personalization(List.of(new EmailAddress(recipient, name)))),
+        BrevoMessage message = new BrevoMessage(
                 new EmailAddress(from, fromName),
+                List.of(new EmailAddress(recipient, name)),
                 "Your ToolTrack password reset code",
-                List.of(new MessageContent("text/plain", text)));
+                text);
         try {
             restClient.post()
-                    .uri("/v3/mail/send")
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                    .uri("/v3/smtp/email")
+                    .header("api-key", apiKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(message)
                     .retrieve()
@@ -86,16 +85,10 @@ public class PasswordResetMailService {
                 .build();
     }
 
-    private record SendGridMessage(List<Personalization> personalizations, EmailAddress from,
-                                   String subject, List<MessageContent> content) {
-    }
-
-    private record Personalization(List<EmailAddress> to) {
+    private record BrevoMessage(EmailAddress sender, List<EmailAddress> to,
+                                String subject, String textContent) {
     }
 
     private record EmailAddress(String email, String name) {
-    }
-
-    private record MessageContent(String type, String value) {
     }
 }
