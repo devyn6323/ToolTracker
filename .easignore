@@ -1,0 +1,36 @@
+# Only the mobile project is needed by EAS.
+tooltrack-backend/
+play-store/
+.m2/
+.git/
+.idea/
+.vscode/
+render.yaml
+PLAY_RELEASE_CHECKLIST.md
+
+# Mobile dependencies, generated native projects, and build output.
+tooltrack-mobile/node_modules/
+tooltrack-mobile/.expo/
+tooltrack-mobile/dist/
+tooltrack-mobile/web-build/
+tooltrack-mobile/android/
+tooltrack-mobile/ios/
+**/.gradle/
+**/.kotlin/
+**/build/
+
+# Local credentials, environment files, logs, and prior packages.
+.env
+.env.*
+!**/.env.example
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+*.log
+*.tsbuildinfo
+*.apk
+*.aab
+.DS_Store
